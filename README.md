@@ -5,7 +5,7 @@
 ## Step 1: choose spring boot with gradle 
 ## Step 2: Create github repository name is CI-CD-Pipeline-Using-Github-Action
 ## Step 3: Create dockerhub repository name is ci_cdpipeline
-## Step 4: create a ci.yaml file
+## Step 4: Create a file .github/workflows/ci-cd.yml
 ```
   name: CI CD with Gradle
 on:
