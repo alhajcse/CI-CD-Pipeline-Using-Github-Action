@@ -14,5 +14,4 @@ public enum BlockTypeStatus {
     public String getLabel() {
         return label;
     }
-
 }
