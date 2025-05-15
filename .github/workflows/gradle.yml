@@ -42,11 +42,11 @@ jobs:
       run: ./gradlew test
 
       # Step 6 (Optional): Upload build artifacts (e.g., .jar or .war files)
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-artifacts
-        path: build/libs/*.jar  # Adjust according to your project structure
+#    - name: Upload build artifacts
+#      uses: actions/upload-artifact@v3
+#      with:
+#        name: build-artifacts
+#        path: build/libs/*.jar  # Adjust according to your project structure
     - name: Build & push Docker image
       uses: mr-smithers-excellent/docker-build-push@v6
       with:
