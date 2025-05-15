@@ -47,7 +47,7 @@ public class OpenApiConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("Bitcoin App Sample API")
+                .title("Bitcoin App API")
                 .description("API Bitcoin")
                 .version("1.0")
                 .contact(apiContact())
