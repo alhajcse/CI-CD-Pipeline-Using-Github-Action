@@ -11,5 +11,5 @@ RUN ./gradlew bootJar
 FROM openjdk:17-jdk-alpine
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar ci_cdpipeline.jar
-EXPOSE 8033
+EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "ci_cdpipeline.jar"]
