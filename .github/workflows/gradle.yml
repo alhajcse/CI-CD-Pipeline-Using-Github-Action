@@ -72,8 +72,6 @@ jobs:
             echo "Cleaning up old containers..."
             docker rm -f app-blue || true
             docker rm -f app-green || true
-
-
 #name: CI CD with Gradle
 #on:
 #  push:
