@@ -36,6 +36,7 @@ public class SecurityConfig  {
 			"/api/v1/users/login",
 			"/api/v1/users/registration",
 			"/api/v1/public/**",
+			"/actuator/health",
 			"/webjars/**"
 
 	};

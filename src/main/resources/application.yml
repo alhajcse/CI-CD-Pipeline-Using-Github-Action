@@ -66,6 +66,7 @@ management:
     web:
       exposure:
         include: "health"
+      base-path: /actuator
 
 
   #feign.client.config.default.connectTimeout: 160000000
