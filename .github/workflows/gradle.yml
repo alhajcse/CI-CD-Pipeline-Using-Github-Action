@@ -5,54 +5,123 @@
 # This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
 
-name: CI CD with Gradle
+name: Spring Boot Blue-Green Deployment
+
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [main]
+
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
-    # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
-    - name: Set up Gradle 8.8
-      uses: gradle/gradle-build-action@v3
-      with:
-        gradle-version: '8.8'
-        cache-disabled: false # Caching Gradle for faster builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # Step 4: Run Gradle build
-    - name: Run build with Gradle
-      run: ./gradlew clean build
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 5: Run tests
-    - name: Run tests
-      run: ./gradlew test
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: your-dockerhub-username/spring-boot-app:latest
 
-      # Step 6 (Optional): Upload build artifacts (e.g., .jar or .war files)
-#    - name: Upload build artifacts
-#      uses: actions/upload-artifact@v3
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull your-dockerhub-username/spring-boot-app:latest
+            
+            ACTIVE=$(docker ps --filter "name=app-green" --format "{{.Names}}")
+            if [ "$ACTIVE" == "app-green" ]; then
+              NEW=app-blue
+              NEW_PORT=8082
+            else
+              NEW=app-green
+              NEW_PORT=8081
+            fi
+            
+            echo "Launching new container: $NEW on port $NEW_PORT"
+            docker run -d --name $NEW -p $NEW_PORT:8080 your-dockerhub-username/spring-boot-app:latest
+            
+            echo "Waiting for container to warm up..."
+            sleep 10
+            
+            curl --fail http://localhost:$NEW_PORT/actuator/health || {
+              echo "❌ Health check failed! Removing $NEW."
+              docker rm -f $NEW
+              exit 1
+            }
+            
+            echo "✔ Health check passed. Updating NGINX config..."
+            sed -i "s|proxy_pass http://localhost:[0-9]*;|proxy_pass http://localhost:$NEW_PORT;|" /etc/nginx/conf.d/default.conf
+            nginx -s reload
+            
+            echo "🧹 Cleaning up old containers..."
+            docker rm -f app-blue || true
+            docker rm -f app-green || true
+
+
+#name: CI CD with Gradle
+#on:
+#  push:
+#    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
+#jobs:
+#  build:
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: read
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#    - name: Set up JDK 17
+#      uses: actions/setup-java@v4
 #      with:
-#        name: build-artifacts
-#        path: build/libs/*.jar  # Adjust according to your project structure
-    - name: Build & push Docker image
-      uses: mr-smithers-excellent/docker-build-push@v6
-      with:
-        image: alhajcse/ci_cdpipeline
-        tags: latest
-        registry: docker.io
-        dockerfile: Dockerfile
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+#        java-version: '17'
+#        distribution: 'temurin'
+#
+#    # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
+#    # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
+#    - name: Set up Gradle 8.8
+#      uses: gradle/gradle-build-action@v3
+#      with:
+#        gradle-version: '8.8'
+#        cache-disabled: false # Caching Gradle for faster builds
+#
+#      # Step 4: Run Gradle build
+#    - name: Run build with Gradle
+#      run: ./gradlew clean build
+#
+#      # Step 5: Run tests
+#    - name: Run tests
+#      run: ./gradlew test
+#
+#      # Step 6 (Optional): Upload build artifacts (e.g., .jar or .war files)
+##    - name: Upload build artifacts
+##      uses: actions/upload-artifact@v3
+##      with:
+##        name: build-artifacts
+##        path: build/libs/*.jar  # Adjust according to your project structure
+#    - name: Build & push Docker image
+#      uses: mr-smithers-excellent/docker-build-push@v6
+#      with:
+#        image: alhajcse/ci_cdpipeline
+#        tags: latest
+#        registry: docker.io
+#        dockerfile: Dockerfile
+#        username: ${{ secrets.DOCKER_USERNAME }}
+#        password: ${{ secrets.DOCKER_PASSWORD }}
