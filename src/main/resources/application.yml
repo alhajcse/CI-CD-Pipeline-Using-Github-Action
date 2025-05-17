@@ -62,13 +62,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health"
+  endpoint:
+    health:
+      probe:
+        enabled: true
 
-  management:
-    endpoint:
-      health:
-        probe:
-          enabled: true
   #feign.client.config.default.connectTimeout: 160000000
   #feign.client.config.default.readTimeout: 160000000
 
